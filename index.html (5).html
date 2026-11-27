@@ -1,0 +1,2099 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Kørsels- & Hverdagslog</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --surface: #172033;
+      --surface-elevated: #1e293b;
+      --surface-hover: #27364f;
+      --border: #2e3f5e;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-dark: #0284c7;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --radius: 14px;
+      --nav-height: 68px;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.4;
+      min-height: 100dvh;
+      padding-bottom: calc(var(--nav-height) + env(safe-area-inset-bottom) + 20px);
+    }
+
+    /* Layout Container: bredere når man er i kalender med mange måneder */
+    .app-container {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 16px 16px 24px;
+      transition: max-width 0.2s ease;
+    }
+
+    .app-container.wide-mode {
+      max-width: 1180px;
+    }
+
+    /* Header & Date Bar */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      margin-bottom: 18px;
+    }
+
+    .date-nav-btn {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .date-nav-btn:active {
+      transform: scale(0.95);
+      background: var(--surface-hover);
+    }
+
+    .date-display {
+      text-align: center;
+      flex: 1;
+      padding: 0 8px;
+    }
+
+    .date-display .day-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: rgba(56, 189, 248, 0.16);
+      color: var(--accent);
+      margin-bottom: 3px;
+    }
+
+    .date-display .day-badge.not-today {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      cursor: pointer;
+    }
+
+    .date-display h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      text-transform: capitalize;
+    }
+
+    /* Section Titles */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 18px 0 10px;
+    }
+
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    /* 1-Second Action Grid */
+    .action-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    @media (min-width: 500px) {
+      .action-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .action-btn {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      min-height: 64px;
+      padding: 14px 16px;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 0.08s ease, background-color 0.15s ease, border-color 0.15s ease;
+    }
+
+    .action-btn:active {
+      transform: scale(0.98);
+    }
+
+    .action-btn .btn-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-right: 10px;
+    }
+
+    .color-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .check-circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 1rem;
+      font-weight: 800;
+      color: transparent;
+      transition: all 0.15s ease;
+    }
+
+    .action-btn.active {
+      background: rgba(56, 189, 248, 0.08);
+    }
+
+    .action-btn.active .check-circle {
+      color: #0b1120;
+      border-color: transparent;
+    }
+
+    /* Note Field */
+    .note-box {
+      margin-top: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+    }
+
+    .note-box label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .note-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-size: 0.95rem;
+      font-family: inherit;
+    }
+
+    .note-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    /* Quick Shortcut */
+    .quick-manage-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 16px;
+      background: transparent;
+      border: 1px dashed var(--border);
+      color: var(--text-muted);
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      cursor: pointer;
+      width: 100%;
+      justify-content: center;
+    }
+
+    .quick-manage-link:hover {
+      color: var(--text);
+      border-color: var(--text-muted);
+    }
+
+    /* Views */
+    .view {
+      display: none;
+    }
+    .view.active {
+      display: block;
+    }
+
+    /* Calendar View */
+    .cal-toolbar {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: linear-gradient(135deg, #172540 0%, #172033 100%);
+      border: 1px solid #324b75;
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      margin-bottom: 14px;
+    }
+
+    .cal-nav-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cal-title-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      text-align: center;
+    }
+
+    .cal-header-title {
+      font-size: 1.12rem;
+      font-weight: 700;
+      text-transform: capitalize;
+      color: #f8fafc;
+    }
+
+    .cal-jump-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .mini-year-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 4px 9px;
+      border-radius: 7px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .mini-year-btn:hover {
+      color: var(--text);
+      border-color: var(--accent);
+    }
+
+    /* View Mode Switcher (Uge / 1 md / 2-12 md) */
+    .cal-mode-bar {
+      display: flex;
+      gap: 5px;
+      overflow-x: auto;
+      padding-top: 4px;
+      scrollbar-width: none;
+    }
+    .cal-mode-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .mode-pill {
+      flex: 1;
+      min-width: 52px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 7px 8px;
+      border-radius: 9px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.12s ease;
+    }
+
+    .mode-pill.active {
+      background: var(--accent);
+      color: #0b1120;
+      border-color: var(--accent);
+    }
+
+    /* Multi-Month Grid */
+    .months-container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    .months-container.span-2 {
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 720px) {
+      .months-container.span-2,
+      .months-container.span-3,
+      .months-container.span-6,
+      .months-container.span-12 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (min-width: 1020px) {
+      .months-container.span-3,
+      .months-container.span-6,
+      .months-container.span-12 {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .month-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    }
+
+    .month-card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-transform: capitalize;
+      color: #7dd3fc;
+      margin-bottom: 8px;
+      padding-left: 4px;
+    }
+
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+    }
+
+    .cal-weekday {
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #64748b;
+      padding-bottom: 4px;
+    }
+
+    .cal-day {
+      aspect-ratio: 1 / 1.12;
+      background: #10192b;
+      border: 1px solid #243554;
+      border-radius: 9px;
+      padding: 4px 3px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      color: #e2e8f0;
+      transition: transform 0.08s ease, border-color 0.12s ease;
+    }
+
+    .cal-day:hover {
+      border-color: #4f72a8;
+    }
+
+    .cal-day.empty {
+      background: transparent;
+      border-color: transparent;
+      cursor: default;
+    }
+
+    .cal-day.has-activity {
+      background: #172846;
+      border-color: #3b5f94;
+    }
+
+    .cal-day.today {
+      border: 2px solid var(--accent);
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.35);
+    }
+
+    .cal-day.selected {
+      background: #1d4ed8;
+      border-color: #93c5fd;
+      color: #ffffff;
+    }
+
+    .cal-day-top {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 2px;
+    }
+
+    .cal-day-num {
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .note-indicator {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #fbbf24;
+    }
+
+    .cal-dots {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 3px;
+      max-width: 100%;
+    }
+
+    .cal-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    /* Week Strip View */
+    .week-strip {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+    }
+
+    @media (min-width: 600px) {
+      .week-strip {
+        grid-template-columns: repeat(7, 1fr);
+      }
+    }
+
+    .week-card {
+      background: #10192b;
+      border: 1px solid #243554;
+      border-radius: 11px;
+      padding: 10px 8px;
+      min-height: 110px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      cursor: pointer;
+      text-align: left;
+      color: var(--text);
+    }
+
+    .week-card.today {
+      border: 2px solid var(--accent);
+    }
+
+    .week-card.selected {
+      background: #172d52;
+      border-color: #60a5fa;
+    }
+
+    .week-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+      padding-bottom: 4px;
+    }
+
+    .week-day-name {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .week-day-num {
+      font-size: 0.95rem;
+      font-weight: 800;
+    }
+
+    .week-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      padding: 3px 6px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      line-height: 1.2;
+    }
+
+    .week-note-preview {
+      font-size: 0.72rem;
+      color: #fcd34d;
+      margin-top: auto;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Selected day drawer inside calendar */
+    .cal-editor {
+      margin-top: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px;
+    }
+
+    .cal-editor h3 {
+      font-size: 1rem;
+      margin-bottom: 10px;
+      text-transform: capitalize;
+    }
+
+    .mini-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .mini-chip {
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Overview & SKAT View */
+    .filter-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    .filter-select {
+      flex: 1;
+      min-width: 130px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 11px 12px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+
+    /* Infinite Year Stepper */
+    .year-stepper {
+      display: flex;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      flex: 1;
+      min-width: 150px;
+    }
+
+    .year-step-btn {
+      background: transparent;
+      border: none;
+      color: var(--text);
+      width: 40px;
+      height: 44px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .year-step-btn:active {
+      background: var(--surface-hover);
+    }
+
+    .year-number-input {
+      width: 100%;
+      min-width: 60px;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      text-align: center;
+      font-size: 0.98rem;
+      font-weight: 700;
+      font-family: inherit;
+      -moz-appearance: textfield;
+    }
+
+    .year-number-input::-webkit-outer-spin-button,
+    .year-number-input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .year-number-input:focus {
+      outline: none;
+      color: var(--accent);
+    }
+
+    .export-actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .btn-secondary {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 11px 12px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .btn-secondary:active {
+      background: var(--surface-hover);
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .stat-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      cursor: pointer;
+    }
+
+    .stat-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 0.98rem;
+    }
+
+    .stat-count {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .stat-dates {
+      display: none;
+      padding: 0 16px 14px;
+      border-top: 1px solid var(--border);
+      background: rgba(11, 17, 32, 0.5);
+    }
+
+    .stat-card.open .stat-dates {
+      display: block;
+    }
+
+    .date-list {
+      list-style: none;
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .date-list li {
+      font-size: 0.88rem;
+      color: var(--text);
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+    }
+
+    .date-list li span.note-tag {
+      color: var(--text-muted);
+      font-style: italic;
+      font-size: 0.82rem;
+    }
+
+    /* Settings / Category Management */
+    .card-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .card-box h3 {
+      font-size: 1rem;
+      margin-bottom: 12px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .text-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 12px;
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+
+    .color-picker {
+      width: 48px;
+      height: 44px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg);
+      padding: 3px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .btn-primary {
+      width: 100%;
+      background: var(--accent);
+      color: #0b1120;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-primary:active {
+      background: var(--accent-dark);
+      color: white;
+    }
+
+    .cat-list-item {
+      display: flex;
+      flex-direction: column;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+    }
+
+    .cat-list-item:last-child {
+      border-bottom: none;
+    }
+
+    .cat-row-main {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .cat-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    .cat-controls {
+      display: flex;
+      gap: 5px;
+      flex-shrink: 0;
+    }
+
+    .cat-edit-form {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      width: 100%;
+      padding-top: 4px;
+    }
+
+    .icon-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .icon-btn.save {
+      background: var(--accent);
+      color: #0b1120;
+      border-color: var(--accent);
+      font-weight: 700;
+    }
+
+    .icon-btn.danger {
+      color: #fca5a5;
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+
+    .archive-drawer-toggle {
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 0.86rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .archive-drawer-body {
+      display: none;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    .archive-drawer-body.open {
+      display: block;
+    }
+
+    .sync-badge {
+      display: inline-block;
+      font-size: 0.78rem;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+
+    /* Bottom Navigation */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: calc(var(--nav-height) + env(safe-area-inset-bottom));
+      padding-bottom: env(safe-area-inset-bottom);
+      background: rgba(23, 32, 51, 0.96);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      z-index: 100;
+    }
+
+    .nav-item {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      height: 100%;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .nav-item .nav-icon {
+      font-size: 1.25rem;
+    }
+
+    .nav-item.active {
+      color: var(--accent);
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-80px);
+      background: #0b1120;
+      color: var(--text);
+      border: 1px solid var(--accent);
+      padding: 10px 18px;
+      border-radius: 99px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      transition: transform 0.25s ease;
+      z-index: 999;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <div id="toast" class="toast">Gemt</div>
+
+  <main id="app-container" class="app-container">
+    <!-- FANE 1: I DAG (1-SEKUNDS ACTION PANEL) -->
+    <section id="view-today" class="view active">
+      <div class="top-bar">
+        <button class="date-nav-btn" id="prev-day-btn" aria-label="Forrige dag">‹</button>
+        <div class="date-display">
+          <div id="today-badge" class="day-badge">I DAG</div>
+          <h1 id="active-date-label">Fredag 27. nov 2026</h1>
+        </div>
+        <button class="date-nav-btn" id="next-day-btn" aria-label="Næste dag">›</button>
+      </div>
+
+      <div class="section-header">
+        <span class="section-title">Tryk for at registrere</span>
+        <span id="active-count-label" class="section-title" style="color: var(--accent);">0 valgt</span>
+      </div>
+
+      <div id="today-actions" class="action-grid"></div>
+
+      <div class="note-box">
+        <label for="day-note-input">Note til dagen (valgfri – kommer med i SKAT-overblik)</label>
+        <input type="text" id="day-note-input" class="note-input" placeholder="F.eks. kørt via Vejle, ekstra vagt..." />
+      </div>
+
+      <button class="quick-manage-link" id="shortcut-manage-btn">
+        + Tilføj eller tilpas knapper
+      </button>
+    </section>
+
+    <!-- FANE 2: KALENDER -->
+    <section id="view-calendar" class="view">
+      <div class="cal-toolbar">
+        <div class="cal-nav-row">
+          <button class="date-nav-btn" id="cal-prev-btn" title="Forrige">‹</button>
+          <div class="cal-title-group">
+            <div id="cal-range-label" class="cal-header-title">November 2026</div>
+            <div class="cal-jump-row">
+              <button class="mini-year-btn" id="cal-prev-year">« År</button>
+              <button class="mini-year-btn" id="cal-jump-today">I dag</button>
+              <button class="mini-year-btn" id="cal-next-year">År »</button>
+            </div>
+          </div>
+          <button class="date-nav-btn" id="cal-next-btn" title="Næste">›</button>
+        </div>
+
+        <div class="cal-mode-bar" role="group" aria-label="Kalendervisning">
+          <button type="button" class="mode-pill" data-span="week">Uge</button>
+          <button type="button" class="mode-pill active" data-span="1">1 md</button>
+          <button type="button" class="mode-pill" data-span="2">2 md</button>
+          <button type="button" class="mode-pill" data-span="3">3 md</button>
+          <button type="button" class="mode-pill" data-span="6">6 md</button>
+          <button type="button" class="mode-pill" data-span="12">12 md</button>
+        </div>
+      </div>
+
+      <div id="cal-canvas"></div>
+
+      <div class="cal-editor" id="cal-editor">
+        <h3 id="cal-selected-title">Valgt dato</h3>
+        <div class="mini-chips" id="cal-editor-chips"></div>
+        <div style="margin-top: 12px;">
+          <input type="text" id="cal-note-input" class="note-input" placeholder="Note til denne dato..." />
+        </div>
+      </div>
+    </section>
+
+    <!-- FANE 3: OVERBLIK & SKAT -->
+    <section id="view-stats" class="view">
+      <div class="section-header" style="margin-top: 0;">
+        <span class="section-title">Overblik & SKAT-dokumentation</span>
+      </div>
+
+      <div class="filter-bar">
+        <select id="stats-period-type" class="filter-select">
+          <option value="month">Vis pr. måned</option>
+          <option value="year">Vis hele året</option>
+        </select>
+        <select id="stats-month-select" class="filter-select"></select>
+        <div class="year-stepper">
+          <button type="button" class="year-step-btn" id="stats-year-prev" title="Forrige år">‹</button>
+          <input type="number" id="stats-year-input" class="year-number-input" min="1970" max="2200" aria-label="Årstal" />
+          <button type="button" class="year-step-btn" id="stats-year-next" title="Næste år">›</button>
+        </div>
+      </div>
+
+      <div class="export-actions">
+        <button class="btn-secondary" id="copy-skat-btn">📋 Kopiér SKAT-liste</button>
+        <button class="btn-secondary" id="export-csv-btn">📥 Hent CSV-fil</button>
+      </div>
+
+      <div id="stats-list"></div>
+    </section>
+
+    <!-- FANE 4: KNAPPER & DATA -->
+    <section id="view-settings" class="view">
+      <div class="card-box">
+        <h3>Opret ny knap</h3>
+        <div class="form-row">
+          <input type="text" id="new-cat-name" class="text-input" placeholder="F.eks. Kørt til Aalborg" />
+          <input type="color" id="new-cat-color" class="color-picker" value="#38bdf8" title="Vælg farve" />
+        </div>
+        <button class="btn-primary" id="add-cat-btn">Tilføj knap til forsiden</button>
+      </div>
+
+      <div class="card-box">
+        <h3>Dine aktive knapper <span style="font-size:0.78rem; font-weight:400; color:var(--text-muted);">(tryk ✏️ for at rette)</span></h3>
+        <div id="active-cats-list"></div>
+      </div>
+
+      <div class="card-box">
+        <button type="button" class="archive-drawer-toggle" id="archive-drawer-toggle">
+          <span>Arkiv & Gemte knapper (skjuler ikke ved fejltryk)</span>
+          <span id="archive-drawer-arrow">▾</span>
+        </button>
+        <div class="archive-drawer-body" id="archive-drawer-body">
+          <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:10px;">
+            Her kan du lægge knapper til side, du ikke længere bruger aktivt, uden at slette historikken.
+          </p>
+          <div id="archive-manage-list"></div>
+        </div>
+      </div>
+
+      <div class="card-box">
+        <h3>Backup & Fremtidig GitHub Sync</h3>
+        <div class="sync-badge">v1.3 Lokal lagring • Klargjort til GitHub API Sync</div>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+          Dine data gemmes automatisk på enheden i et rent JSON-format, klar til næste fase hvor vi kobler direkte på dit GitHub-repository.
+        </p>
+        <div class="export-actions" style="margin-bottom: 0;">
+          <button class="btn-secondary" id="export-json-btn">💾 Eksportér Backup (JSON)</button>
+          <label class="btn-secondary" style="cursor:pointer;">
+            📂 Indlæs Backup
+            <input type="file" id="import-json-input" accept=".json" style="display:none;" />
+          </label>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- BUNDNAVIGATION -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-target="view-today">
+      <span class="nav-icon">⚡</span>
+      <span>I dag</span>
+    </button>
+    <button class="nav-item" data-target="view-calendar">
+      <span class="nav-icon">📅</span>
+      <span>Kalender</span>
+    </button>
+    <button class="nav-item" data-target="view-stats">
+      <span class="nav-icon">📊</span>
+      <span>SKAT / Tal</span>
+    </button>
+    <button class="nav-item" data-target="view-settings">
+      <span class="nav-icon">⚙️</span>
+      <span>Knapper</span>
+    </button>
+  </nav>
+
+  <script>
+    /**
+     * =========================================================================
+     * DATASTORE ENGINE (v1.3 LocalStorage -> Klargjort til v2.0 GitHub Sync)
+     * =========================================================================
+     */
+    const STORAGE_KEY = 'korselslog_data_v1';
+
+    const DEFAULT_CATEGORIES = [
+      { id: 'karup_egen', name: 'Kørt til Karup i egen bil', color: '#38bdf8', archived: false },
+      { id: 'karup_sos', name: 'Karup + SOS', color: '#f59e0b', archived: false },
+      { id: 'skrydstrup', name: 'Skrydstrup', color: '#a855f7', archived: false },
+      { id: 'delebil_hjem', name: 'Haft delebil hjem', color: '#22c55e', archived: false },
+      { id: 'tjenestebil_hjem', name: 'Kørt tjenestebil hjem', color: '#ec4899', archived: false }
+    ];
+
+    const DataStore = {
+      data: null,
+
+      init() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          try {
+            this.data = JSON.parse(raw);
+          } catch (e) {
+            console.error('Fejl ved indlæsning af data, opretter frisk base', e);
+            this.data = this.createInitialState();
+          }
+        } else {
+          this.data = this.createInitialState();
+          this.save();
+        }
+      },
+
+      createInitialState() {
+        return {
+          meta: {
+            version: '1.3',
+            lastModified: new Date().toISOString(),
+            syncTarget: 'local'
+          },
+          categories: JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)),
+          entries: {}
+        };
+      },
+
+      save() {
+        this.data.meta.lastModified = new Date().toISOString();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+      },
+
+      getCategories(includeArchived = false) {
+        return includeArchived
+          ? this.data.categories
+          : this.data.categories.filter(c => !c.archived);
+      },
+
+      getCategoryById(id) {
+        return this.data.categories.find(c => c.id === id);
+      },
+
+      addCategory(name, color) {
+        const cleanName = name.trim();
+        if (!cleanName) return false;
+        const id = 'cat_' + Date.now().toString(36);
+        this.data.categories.push({
+          id,
+          name: cleanName,
+          color: color || '#38bdf8',
+          archived: false
+        });
+        this.save();
+        return true;
+      },
+
+      updateCategory(id, newName, newColor) {
+        const cat = this.getCategoryById(id);
+        const cleanName = newName.trim();
+        if (!cat || !cleanName) return false;
+        cat.name = cleanName;
+        if (newColor) cat.color = newColor;
+        this.save();
+        return true;
+      },
+
+      moveCategory(id, direction) {
+        const activeCats = this.data.categories.filter(c => !c.archived);
+        const activeIdx = activeCats.findIndex(c => c.id === id);
+        if (activeIdx === -1) return;
+        const targetActiveIdx = activeIdx + direction;
+        if (targetActiveIdx < 0 || targetActiveIdx >= activeCats.length) return;
+
+        const fullIdxA = this.data.categories.indexOf(activeCats[activeIdx]);
+        const fullIdxB = this.data.categories.indexOf(activeCats[targetActiveIdx]);
+
+        const temp = this.data.categories[fullIdxA];
+        this.data.categories[fullIdxA] = this.data.categories[fullIdxB];
+        this.data.categories[fullIdxB] = temp;
+        this.save();
+      },
+
+      toggleArchiveCategory(id) {
+        const cat = this.getCategoryById(id);
+        if (!cat) return;
+        cat.archived = !cat.archived;
+        this.save();
+      },
+
+      getEntry(dateStr) {
+        return this.data.entries[dateStr] || { items: [], note: '' };
+      },
+
+      toggleItem(dateStr, catId) {
+        if (!this.data.entries[dateStr]) {
+          this.data.entries[dateStr] = { items: [], note: '', updatedAt: new Date().toISOString() };
+        }
+        const entry = this.data.entries[dateStr];
+        const idx = entry.items.indexOf(catId);
+        if (idx > -1) {
+          entry.items.splice(idx, 1);
+        } else {
+          entry.items.push(catId);
+        }
+        entry.updatedAt = new Date().toISOString();
+        this.cleanupEntry(dateStr);
+        this.save();
+      },
+
+      setNote(dateStr, noteText) {
+        if (!this.data.entries[dateStr]) {
+          if (!noteText.trim()) return;
+          this.data.entries[dateStr] = { items: [], note: noteText, updatedAt: new Date().toISOString() };
+        } else {
+          this.data.entries[dateStr].note = noteText;
+          this.data.entries[dateStr].updatedAt = new Date().toISOString();
+        }
+        this.cleanupEntry(dateStr);
+        this.save();
+      },
+
+      cleanupEntry(dateStr) {
+        const entry = this.data.entries[dateStr];
+        if (entry && entry.items.length === 0 && (!entry.note || !entry.note.trim())) {
+          delete this.data.entries[dateStr];
+        }
+      },
+
+      exportJSON() {
+        return JSON.stringify(this.data, null, 2);
+      },
+
+      importJSON(jsonStr) {
+        const parsed = JSON.parse(jsonStr);
+        if (!parsed.categories || !parsed.entries) {
+          throw new Error('Ugyldigt backup-format');
+        }
+        this.data = parsed;
+        this.save();
+      }
+    };
+
+    /**
+     * =========================================================================
+     * DATO-HJÆLPERE (Lokal tidszone uden UTC-forskydningsfejl)
+     * =========================================================================
+     */
+    const MONTHS_DA = [
+      'januar', 'februar', 'marts', 'april', 'maj', 'juni',
+      'juli', 'august', 'september', 'oktober', 'november', 'december'
+    ];
+    const WEEKDAYS_DA = ['søndag', 'mandag', 'tirsdag', 'onsdag', 'torsdag', 'fredag', 'lørdag'];
+    const WEEKDAYS_SHORT_DA = ['Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør', 'Søn'];
+
+    function toDateStr(dateObj) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function parseDateStr(dateStr) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function addDays(dateStr, days) {
+      const d = parseDateStr(dateStr);
+      d.setDate(d.getDate() + days);
+      return toDateStr(d);
+    }
+
+    function getMondayOfWeek(dateStr) {
+      const d = parseDateStr(dateStr);
+      const day = d.getDay(); // 0 = søndag
+      const diff = day === 0 ? -6 : 1 - day;
+      d.setDate(d.getDate() + diff);
+      return toDateStr(d);
+    }
+
+    function getISOWeekNumber(dateStr) {
+      const d = parseDateStr(dateStr);
+      const utcDate = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      const dayNum = utcDate.getUTCDay() || 7;
+      utcDate.setUTCDate(utcDate.getUTCDate() + 4 - dayNum);
+      const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+      return Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
+    }
+
+    function formatReadableDate(dateStr) {
+      const d = parseDateStr(dateStr);
+      const weekday = WEEKDAYS_DA[d.getDay()];
+      return `${weekday} ${d.getDate()}. ${MONTHS_DA[d.getMonth()]} ${d.getFullYear()}`;
+    }
+
+    function formatShortDate(dateStr) {
+      const [y, m, d] = dateStr.split('-');
+      return `${d}/${m}-${y}`;
+    }
+
+    function hexToRgba(hex, alpha) {
+      const clean = (hex || '#38bdf8').replace('#', '');
+      const num = parseInt(clean, 16);
+      if (Number.isNaN(num) || clean.length !== 6) return `rgba(56, 189, 248, ${alpha})`;
+      const r = (num >> 16) & 255;
+      const g = (num >> 8) & 255;
+      const b = num & 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    /**
+     * =========================================================================
+     * APP STATE & UI RENDERING
+     * =========================================================================
+     */
+    const App = {
+      todayStr: toDateStr(new Date()),
+      activeDateStr: toDateStr(new Date()),
+      calYear: new Date().getFullYear(),
+      calMonth: new Date().getMonth(),
+      calWeekStart: getMondayOfWeek(toDateStr(new Date())),
+      calSpan: '1', // 'week' | '1' | '2' | '3' | '6' | '12'
+      calSelectedDate: toDateStr(new Date()),
+      editingCatId: null,
+      archiveDrawerOpen: false,
+
+      init() {
+        DataStore.init();
+        this.bindEvents();
+        this.initStatsFilters();
+        this.renderToday();
+      },
+
+      showToast(msg) {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.classList.add('show');
+        clearTimeout(this._toastTimer);
+        this._toastTimer = setTimeout(() => el.classList.remove('show'), 1600);
+      },
+
+      switchView(targetId) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(targetId).classList.add('active');
+
+        document.querySelectorAll('.nav-item').forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.target === targetId);
+        });
+
+        const container = document.getElementById('app-container');
+        const isWideCal = targetId === 'view-calendar' && ['2', '3', '6', '12'].includes(this.calSpan);
+        container.classList.toggle('wide-mode', isWideCal);
+
+        if (targetId === 'view-today') this.renderToday();
+        if (targetId === 'view-calendar') this.renderCalendar();
+        if (targetId === 'view-stats') this.renderStats();
+        if (targetId === 'view-settings') {
+          this.editingCatId = null;
+          this.renderSettings();
+        }
+      },
+
+      bindEvents() {
+        // Navigation
+        document.querySelectorAll('.nav-item').forEach(btn => {
+          btn.addEventListener('click', () => this.switchView(btn.dataset.target));
+        });
+
+        // Today Date Controls
+        document.getElementById('prev-day-btn').addEventListener('click', () => {
+          this.activeDateStr = addDays(this.activeDateStr, -1);
+          this.renderToday();
+        });
+        document.getElementById('next-day-btn').addEventListener('click', () => {
+          this.activeDateStr = addDays(this.activeDateStr, 1);
+          this.renderToday();
+        });
+        document.getElementById('today-badge').addEventListener('click', () => {
+          this.todayStr = toDateStr(new Date());
+          this.activeDateStr = this.todayStr;
+          this.renderToday();
+        });
+
+        // Today Note Input
+        document.getElementById('day-note-input').addEventListener('input', (e) => {
+          DataStore.setNote(this.activeDateStr, e.target.value);
+        });
+
+        // Shortcut to Manage Buttons
+        document.getElementById('shortcut-manage-btn').addEventListener('click', () => {
+          this.switchView('view-settings');
+        });
+
+        // Calendar Span Mode Buttons
+        document.querySelectorAll('.mode-pill').forEach(pill => {
+          pill.addEventListener('click', () => {
+            this.calSpan = pill.dataset.span;
+            document.querySelectorAll('.mode-pill').forEach(p => p.classList.toggle('active', p === pill));
+            if (this.calSpan === 'week') {
+              this.calWeekStart = getMondayOfWeek(this.calSelectedDate);
+            }
+            const container = document.getElementById('app-container');
+            container.classList.toggle('wide-mode', ['2', '3', '6', '12'].includes(this.calSpan));
+            this.renderCalendar();
+          });
+        });
+
+        // Calendar Prev / Next Step
+        document.getElementById('cal-prev-btn').addEventListener('click', () => {
+          if (this.calSpan === 'week') {
+            this.calWeekStart = addDays(this.calWeekStart, -7);
+          } else {
+            const step = parseInt(this.calSpan, 10) || 1;
+            this.shiftCalendarMonths(-step);
+          }
+          this.renderCalendar();
+        });
+
+        document.getElementById('cal-next-btn').addEventListener('click', () => {
+          if (this.calSpan === 'week') {
+            this.calWeekStart = addDays(this.calWeekStart, 7);
+          } else {
+            const step = parseInt(this.calSpan, 10) || 1;
+            this.shiftCalendarMonths(step);
+          }
+          this.renderCalendar();
+        });
+
+        document.getElementById('cal-prev-year').addEventListener('click', () => {
+          if (this.calSpan === 'week') {
+            this.calWeekStart = addDays(this.calWeekStart, -364);
+          } else {
+            this.calYear--;
+          }
+          this.renderCalendar();
+        });
+
+        document.getElementById('cal-next-year').addEventListener('click', () => {
+          if (this.calSpan === 'week') {
+            this.calWeekStart = addDays(this.calWeekStart, 364);
+          } else {
+            this.calYear++;
+          }
+          this.renderCalendar();
+        });
+
+        document.getElementById('cal-jump-today').addEventListener('click', () => {
+          const now = new Date();
+          this.todayStr = toDateStr(now);
+          this.calYear = now.getFullYear();
+          this.calMonth = now.getMonth();
+          this.calSelectedDate = this.todayStr;
+          this.calWeekStart = getMondayOfWeek(this.todayStr);
+          this.renderCalendar();
+        });
+
+        document.getElementById('cal-note-input').addEventListener('input', (e) => {
+          DataStore.setNote(this.calSelectedDate, e.target.value);
+          this.renderCalendarGridOnly();
+        });
+
+        // Stats Filters & Exports
+        document.getElementById('stats-period-type').addEventListener('change', () => {
+          const isMonth = document.getElementById('stats-period-type').value === 'month';
+          document.getElementById('stats-month-select').style.display = isMonth ? 'block' : 'none';
+          this.renderStats();
+        });
+        document.getElementById('stats-month-select').addEventListener('change', () => this.renderStats());
+
+        const yearInput = document.getElementById('stats-year-input');
+        document.getElementById('stats-year-prev').addEventListener('click', () => {
+          yearInput.value = (parseInt(yearInput.value, 10) || new Date().getFullYear()) - 1;
+          this.renderStats();
+        });
+        document.getElementById('stats-year-next').addEventListener('click', () => {
+          yearInput.value = (parseInt(yearInput.value, 10) || new Date().getFullYear()) + 1;
+          this.renderStats();
+        });
+        yearInput.addEventListener('change', () => {
+          if (!yearInput.value || yearInput.value.length < 4) {
+            yearInput.value = new Date().getFullYear();
+          }
+          this.renderStats();
+        });
+
+        document.getElementById('copy-skat-btn').addEventListener('click', () => this.copySkatReport());
+        document.getElementById('export-csv-btn').addEventListener('click', () => this.downloadCSV());
+
+        // Settings: Archive Drawer Toggle
+        document.getElementById('archive-drawer-toggle').addEventListener('click', () => {
+          this.archiveDrawerOpen = !this.archiveDrawerOpen;
+          document.getElementById('archive-drawer-body').classList.toggle('open', this.archiveDrawerOpen);
+          document.getElementById('archive-drawer-arrow').textContent = this.archiveDrawerOpen ? '▴' : '▾';
+        });
+
+        // Settings: Add Category
+        document.getElementById('add-cat-btn').addEventListener('click', () => {
+          const nameInput = document.getElementById('new-cat-name');
+          const colorInput = document.getElementById('new-cat-color');
+          if (DataStore.addCategory(nameInput.value, colorInput.value)) {
+            nameInput.value = '';
+            this.renderSettings();
+            this.showToast('Ny knap oprettet');
+          }
+        });
+
+        // Settings: Export / Import JSON
+        document.getElementById('export-json-btn').addEventListener('click', () => {
+          const blob = new Blob([DataStore.exportJSON()], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `korselslog-backup-${this.todayStr}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+          this.showToast('Backup hentet');
+        });
+
+        document.getElementById('import-json-input').addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            try {
+              DataStore.importJSON(ev.target.result);
+              this.renderSettings();
+              this.showToast('Backup indlæst!');
+            } catch (err) {
+              alert('Kunne ikke læse filen: ' + err.message);
+            }
+          };
+          reader.readAsText(file);
+          e.target.value = '';
+        });
+      },
+
+      shiftCalendarMonths(deltaMonths) {
+        const d = new Date(this.calYear, this.calMonth + deltaMonths, 1);
+        this.calYear = d.getFullYear();
+        this.calMonth = d.getMonth();
+      },
+
+      /* ---------------- FANE 1: I DAG ---------------- */
+      renderToday() {
+        this.todayStr = toDateStr(new Date());
+        const badge = document.getElementById('today-badge');
+        if (this.activeDateStr === this.todayStr) {
+          badge.textContent = 'I DAG';
+          badge.className = 'day-badge';
+        } else if (this.activeDateStr === addDays(this.todayStr, -1)) {
+          badge.textContent = 'I GÅR (Tryk for i dag)';
+          badge.className = 'day-badge not-today';
+        } else if (this.activeDateStr === addDays(this.todayStr, 1)) {
+          badge.textContent = 'I MORGEN (Tryk for i dag)';
+          badge.className = 'day-badge not-today';
+        } else {
+          badge.textContent = 'VALGT DATO (Tryk for i dag)';
+          badge.className = 'day-badge not-today';
+        }
+
+        document.getElementById('active-date-label').textContent = formatReadableDate(this.activeDateStr);
+
+        const entry = DataStore.getEntry(this.activeDateStr);
+        const cats = DataStore.getCategories(false);
+        const container = document.getElementById('today-actions');
+        container.innerHTML = '';
+
+        cats.forEach(cat => {
+          const isChecked = entry.items.includes(cat.id);
+          const btn = document.createElement('button');
+          btn.className = 'action-btn' + (isChecked ? ' active' : '');
+          if (isChecked) {
+            btn.style.borderColor = cat.color;
+            btn.style.background = hexToRgba(cat.color, 0.14);
+          }
+
+          btn.innerHTML = `
+            <span class="btn-left">
+              <span class="color-dot" style="background:${cat.color};"></span>
+              <span>${cat.name}</span>
+            </span>
+            <span class="check-circle" style="${isChecked ? `background:${cat.color};` : ''}">✓</span>
+          `;
+
+          btn.addEventListener('click', () => {
+            DataStore.toggleItem(this.activeDateStr, cat.id);
+            this.renderToday();
+            this.showToast('Gemt');
+          });
+
+          container.appendChild(btn);
+        });
+
+        document.getElementById('active-count-label').textContent = `${entry.items.length} valgt`;
+        document.getElementById('day-note-input').value = entry.note || '';
+      },
+
+      /* ---------------- FANE 2: KALENDER ---------------- */
+      renderCalendar() {
+        this.renderCalendarGridOnly();
+        this.renderCalendarEditor();
+      },
+
+      renderCalendarGridOnly() {
+        const canvas = document.getElementById('cal-canvas');
+        const rangeLabel = document.getElementById('cal-range-label');
+        canvas.innerHTML = '';
+
+        if (this.calSpan === 'week') {
+          const weekEnd = addDays(this.calWeekStart, 6);
+          const wkNum = getISOWeekNumber(this.calWeekStart);
+          const startD = parseDateStr(this.calWeekStart);
+          const endD = parseDateStr(weekEnd);
+          rangeLabel.textContent = `Uge ${wkNum} • ${startD.getDate()}. ${MONTHS_DA[startD.getMonth()].slice(0, 3)} – ${endD.getDate()}. ${MONTHS_DA[endD.getMonth()].slice(0, 3)} ${endD.getFullYear()}`;
+
+          const strip = document.createElement('div');
+          strip.className = 'week-strip';
+
+          for (let i = 0; i < 7; i++) {
+            const dateStr = addDays(this.calWeekStart, i);
+            const dObj = parseDateStr(dateStr);
+            const entry = DataStore.getEntry(dateStr);
+            const firstCat = entry.items.length > 0 ? DataStore.getCategoryById(entry.items[0]) : null;
+
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'week-card';
+            if (dateStr === this.todayStr) card.classList.add('today');
+            if (dateStr === this.calSelectedDate) card.classList.add('selected');
+            if (firstCat) {
+              card.style.borderColor = firstCat.color;
+              card.style.background = hexToRgba(firstCat.color, 0.12);
+            }
+
+            let pillsHtml = '';
+            entry.items.forEach(catId => {
+              const cat = DataStore.getCategoryById(catId);
+              if (cat) {
+                pillsHtml += `<span class="week-pill" style="border-left: 3px solid ${cat.color};">${cat.name}</span>`;
+              }
+            });
+
+            card.innerHTML = `
+              <div class="week-card-head">
+                <span class="week-day-name">${WEEKDAYS_SHORT_DA[i]}</span>
+                <span class="week-day-num">${dObj.getDate()}/${dObj.getMonth() + 1}</span>
+              </div>
+              ${pillsHtml || `<span style="font-size:0.72rem; color:var(--text-muted);">Ingen krydser</span>`}
+              ${entry.note ? `<span class="week-note-preview">📝 ${entry.note}</span>` : ''}
+            `;
+
+            card.addEventListener('click', () => {
+              this.calSelectedDate = dateStr;
+              this.renderCalendar();
+            });
+
+            strip.appendChild(card);
+          }
+
+          canvas.appendChild(strip);
+          return;
+        }
+
+        const spanCount = parseInt(this.calSpan, 10) || 1;
+        if (spanCount === 1) {
+          rangeLabel.textContent = `${MONTHS_DA[this.calMonth]} ${this.calYear}`;
+        } else {
+          const endDateObj = new Date(this.calYear, this.calMonth + spanCount - 1, 1);
+          rangeLabel.textContent = `${MONTHS_DA[this.calMonth]} ${this.calYear} – ${MONTHS_DA[endDateObj.getMonth()]} ${endDateObj.getFullYear()}`;
+        }
+
+        const monthsWrap = document.createElement('div');
+        monthsWrap.className = `months-container span-${spanCount}`;
+
+        for (let mOffset = 0; mOffset < spanCount; mOffset++) {
+          const targetDate = new Date(this.calYear, this.calMonth + mOffset, 1);
+          const y = targetDate.getFullYear();
+          const m = targetDate.getMonth();
+
+          const mCard = document.createElement('div');
+          mCard.className = 'month-card';
+
+          const mTitle = document.createElement('div');
+          mTitle.className = 'month-card-title';
+          mTitle.textContent = `${MONTHS_DA[m]} ${y}`;
+          mCard.appendChild(mTitle);
+
+          const grid = document.createElement('div');
+          grid.className = 'cal-grid';
+
+          WEEKDAYS_SHORT_DA.forEach(h => {
+            const div = document.createElement('div');
+            div.className = 'cal-weekday';
+            div.textContent = h;
+            grid.appendChild(div);
+          });
+
+          const firstDay = new Date(y, m, 1);
+          let startWeekday = firstDay.getDay() - 1;
+          if (startWeekday < 0) startWeekday = 6;
+          const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+          for (let i = 0; i < startWeekday; i++) {
+            const empty = document.createElement('div');
+            empty.className = 'cal-day empty';
+            grid.appendChild(empty);
+          }
+
+          for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const entry = DataStore.getEntry(dateStr);
+            const hasActivity = entry.items.length > 0;
+            const firstCat = hasActivity ? DataStore.getCategoryById(entry.items[0]) : null;
+
+            const cell = document.createElement('button');
+            cell.type = 'button';
+            cell.className = 'cal-day';
+            if (hasActivity) cell.classList.add('has-activity');
+            if (dateStr === this.todayStr) cell.classList.add('today');
+            if (dateStr === this.calSelectedDate) cell.classList.add('selected');
+
+            if (firstCat && dateStr !== this.calSelectedDate) {
+              cell.style.background = hexToRgba(firstCat.color, 0.16);
+              cell.style.borderColor = hexToRgba(firstCat.color, 0.55);
+            }
+
+            let dotsHtml = '';
+            entry.items.forEach(catId => {
+              const cat = DataStore.getCategoryById(catId);
+              if (cat) {
+                dotsHtml += `<span class="cal-dot" style="background:${cat.color};"></span>`;
+              }
+            });
+
+            cell.innerHTML = `
+              <div class="cal-day-top">
+                <span class="cal-day-num">${day}</span>
+                ${entry.note ? '<span class="note-indicator" title="Har note"></span>' : ''}
+              </div>
+              <span class="cal-dots">${dotsHtml}</span>
+            `;
+
+            cell.addEventListener('click', () => {
+              this.calSelectedDate = dateStr;
+              this.renderCalendar();
+            });
+
+            grid.appendChild(cell);
+          }
+
+          mCard.appendChild(grid);
+          monthsWrap.appendChild(mCard);
+        }
+
+        canvas.appendChild(monthsWrap);
+      },
+
+      renderCalendarEditor() {
+        document.getElementById('cal-selected-title').textContent = formatReadableDate(this.calSelectedDate);
+        const entry = DataStore.getEntry(this.calSelectedDate);
+        const cats = DataStore.getCategories(false);
+        const chipsContainer = document.getElementById('cal-editor-chips');
+        chipsContainer.innerHTML = '';
+
+        cats.forEach(cat => {
+          const active = entry.items.includes(cat.id);
+          const chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'mini-chip';
+          if (active) {
+            chip.style.borderColor = cat.color;
+            chip.style.background = hexToRgba(cat.color, 0.18);
+          }
+          chip.innerHTML = `
+            <span class="color-dot" style="background:${cat.color}; width:10px; height:10px;"></span>
+            <span>${active ? '✓ ' : ''}${cat.name}</span>
+          `;
+          chip.addEventListener('click', () => {
+            DataStore.toggleItem(this.calSelectedDate, cat.id);
+            this.renderCalendar();
+            this.showToast('Opdateret');
+          });
+          chipsContainer.appendChild(chip);
+        });
+
+        document.getElementById('cal-note-input').value = entry.note || '';
+      },
+
+      /* ---------------- FANE 3: SKAT & OVERBLIK ---------------- */
+      initStatsFilters() {
+        const monthSel = document.getElementById('stats-month-select');
+        MONTHS_DA.forEach((m, i) => {
+          const opt = document.createElement('option');
+          opt.value = String(i + 1).padStart(2, '0');
+          opt.textContent = m.charAt(0).toUpperCase() + m.slice(1);
+          if (i === new Date().getMonth()) opt.selected = true;
+          monthSel.appendChild(opt);
+        });
+
+        document.getElementById('stats-year-input').value = new Date().getFullYear();
+      },
+
+      getStatsYear() {
+        const val = parseInt(document.getElementById('stats-year-input').value, 10);
+        return Number.isNaN(val) ? new Date().getFullYear() : val;
+      },
+
+      getFilteredStatsData() {
+        const periodType = document.getElementById('stats-period-type').value;
+        const year = String(this.getStatsYear());
+        const month = document.getElementById('stats-month-select').value;
+        const prefix = periodType === 'month' ? `${year}-${month}` : `${year}-`;
+
+        const allCats = DataStore.getCategories(true);
+        const sortedDates = Object.keys(DataStore.data.entries)
+          .filter(d => d.startsWith(prefix))
+          .sort();
+
+        return allCats.map(cat => {
+          const matches = [];
+          sortedDates.forEach(dateStr => {
+            const entry = DataStore.data.entries[dateStr];
+            if (entry && entry.items.includes(cat.id)) {
+              matches.push({ dateStr, note: entry.note || '' });
+            }
+          });
+          return { category: cat, matches };
+        }).filter(group => !group.category.archived || group.matches.length > 0);
+      },
+
+      renderStats() {
+        const listEl = document.getElementById('stats-list');
+        listEl.innerHTML = '';
+        const groups = this.getFilteredStatsData();
+
+        groups.forEach(({ category, matches }) => {
+          const card = document.createElement('div');
+          card.className = 'stat-card' + (matches.length > 0 ? ' open' : '');
+
+          const datesHtml = matches.length === 0
+            ? '<p style="font-size:0.85rem; color:var(--text-muted); padding-top:10px;">Ingen registreringer i valgte periode.</p>'
+            : `<ul class="date-list">${matches.map(m => `
+                <li>
+                  <span>${formatReadableDate(m.dateStr)}</span>
+                  ${m.note ? `<span class="note-tag">${m.note}</span>` : ''}
+                </li>
+              `).join('')}</ul>`;
+
+          card.innerHTML = `
+            <div class="stat-header">
+              <div class="stat-title">
+                <span class="color-dot" style="background:${category.color};"></span>
+                <span>${category.name}${category.archived ? ' (Arkiveret)' : ''}</span>
+              </div>
+              <span class="stat-count">${matches.length} dage</span>
+            </div>
+            <div class="stat-dates">${datesHtml}</div>
+          `;
+
+          card.querySelector('.stat-header').addEventListener('click', () => {
+            card.classList.toggle('open');
+          });
+
+          listEl.appendChild(card);
+        });
+      },
+
+      copySkatReport() {
+        const groups = this.getFilteredStatsData();
+        const periodType = document.getElementById('stats-period-type').value;
+        const year = String(this.getStatsYear());
+        const monthIdx = parseInt(document.getElementById('stats-month-select').value, 10) - 1;
+        const header = periodType === 'month'
+          ? `OPGØRELSE - ${MONTHS_DA[monthIdx].toUpperCase()} ${year}`
+          : `OPGØRELSE - HELE ${year}`;
+
+        let lines = [header, '===================================='];
+        groups.forEach(({ category, matches }) => {
+          lines.push(`\n${category.name}: ${matches.length} dage`);
+          matches.forEach(m => {
+            lines.push(`  - ${formatShortDate(m.dateStr)}${m.note ? ` (${m.note})` : ''}`);
+          });
+        });
+
+        navigator.clipboard.writeText(lines.join('\n')).then(() => {
+          this.showToast('SKAT-liste kopieret!');
+        });
+      },
+
+      downloadCSV() {
+        const groups = this.getFilteredStatsData();
+        let csv = 'Kategori;Dato;Ugedag;Note\n';
+        groups.forEach(({ category, matches }) => {
+          matches.forEach(m => {
+            const d = parseDateStr(m.dateStr);
+            const weekday = WEEKDAYS_DA[d.getDay()];
+            const safeNote = (m.note || '').replace(/;/g, ',');
+            csv += `"${category.name}";"${m.dateStr}";"${weekday}";"${safeNote}"\n`;
+          });
+        });
+
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `skat-opgorelse-${this.todayStr}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.showToast('CSV-fil hentet');
+      },
+
+      /* ---------------- FANE 4: KNAPPER & INDSTILLINGER ---------------- */
+      renderSettings() {
+        const activeList = document.getElementById('active-cats-list');
+        const archiveManageList = document.getElementById('archive-manage-list');
+
+        activeList.innerHTML = '';
+        archiveManageList.innerHTML = '';
+
+        const allCats = DataStore.getCategories(true);
+
+        allCats.forEach(cat => {
+          if (!cat.archived) {
+            const row = document.createElement('div');
+            row.className = 'cat-list-item';
+            const isEditing = this.editingCatId === cat.id;
+
+            row.innerHTML = `
+              <div class="cat-row-main">
+                <div class="cat-info">
+                  <span class="color-dot" style="background:${cat.color};"></span>
+                  <span>${cat.name}</span>
+                </div>
+                <div class="cat-controls">
+                  <button class="icon-btn edit-btn" title="Ret tekst eller farve">✏️</button>
+                  <button class="icon-btn move-up" title="Flyt op">↑</button>
+                  <button class="icon-btn move-down" title="Flyt ned">↓</button>
+                </div>
+              </div>
+              ${isEditing ? `
+                <div class="cat-edit-form">
+                  <input type="text" class="text-input edit-name-input" value="${cat.name.replace(/"/g, '&quot;')}" />
+                  <input type="color" class="color-picker edit-color-input" value="${cat.color}" />
+                  <button class="icon-btn save save-edit-btn">Gem</button>
+                  <button class="icon-btn cancel-edit-btn">✕</button>
+                </div>
+              ` : ''}
+            `;
+
+            const openEdit = () => {
+              this.editingCatId = isEditing ? null : cat.id;
+              this.renderSettings();
+            };
+
+            row.querySelector('.cat-info').addEventListener('click', openEdit);
+            row.querySelector('.edit-btn').addEventListener('click', openEdit);
+
+            row.querySelector('.move-up').addEventListener('click', () => {
+              DataStore.moveCategory(cat.id, -1);
+              this.renderSettings();
+            });
+            row.querySelector('.move-down').addEventListener('click', () => {
+              DataStore.moveCategory(cat.id, 1);
+              this.renderSettings();
+            });
+
+            if (isEditing) {
+              const nameField = row.querySelector('.edit-name-input');
+              const colorField = row.querySelector('.edit-color-input');
+              const saveChanges = () => {
+                if (DataStore.updateCategory(cat.id, nameField.value, colorField.value)) {
+                  this.editingCatId = null;
+                  this.renderSettings();
+                  this.showToast('Knap opdateret');
+                }
+              };
+              row.querySelector('.save-edit-btn').addEventListener('click', saveChanges);
+              row.querySelector('.cancel-edit-btn').addEventListener('click', () => {
+                this.editingCatId = null;
+                this.renderSettings();
+              });
+              nameField.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') saveChanges();
+              });
+            }
+
+            activeList.appendChild(row);
+          }
+
+          const archRow = document.createElement('div');
+          archRow.className = 'cat-list-item';
+          archRow.innerHTML = `
+            <div class="cat-row-main">
+              <div class="cat-info" style="cursor:default; ${cat.archived ? 'opacity:0.65;' : ''}">
+                <span class="color-dot" style="background:${cat.color};"></span>
+                <span>${cat.name}</span>
+              </div>
+              <div class="cat-controls">
+                <button class="icon-btn ${cat.archived ? '' : 'danger'} toggle-arch-btn">
+                  ${cat.archived ? 'Gendan' : 'Arkivér'}
+                </button>
+              </div>
+            </div>
+          `;
+          archRow.querySelector('.toggle-arch-btn').addEventListener('click', () => {
+            if (this.editingCatId === cat.id) this.editingCatId = null;
+            DataStore.toggleArchiveCategory(cat.id);
+            this.renderSettings();
+            this.showToast(cat.archived ? 'Flyttet til aktive' : 'Flyttet til arkiv');
+          });
+          archiveManageList.appendChild(archRow);
+        });
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => App.init());
+  </script>
+</body>
+</html>
